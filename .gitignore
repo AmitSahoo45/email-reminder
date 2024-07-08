@@ -1,0 +1,5 @@
+# in backend folder hide backend/node_modules and backend/.env file
+# in frontend folder hide frontend/node_modules
+backend/node_modules
+backend/.env
+frontend/node_modules
