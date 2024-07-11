@@ -20,61 +20,74 @@ const TestRoute = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const SignIn = async (req: Request, res: Response): Promise<Response> => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password)
+        return res.status(400).json({ message: 'All fields are required' });
+
+    if (!emailIsValid(email))
+        return res.status(400).json({ message: 'Invalid email' });
+
+    const hashedPassword = await hashPassword(password);
+    const otp = generateOTP();
+    const otpid = generateId();
+    const userid = generateId();
+
     try {
-        const { name, email, password } = req.body;
+        await Promise.all([
+            cassandraClient.execute(
+                'INSERT INTO email_reminder.e_users (userid, name, email, password, is_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [userid, name, email, hashedPassword, false, new Date(), new Date()],
+                { prepare: true }
+            ),
 
-        if (!name || !email || !password)
-            return res.status(400).json({ message: 'All fields are required' });
+            cassandraClient.execute(
+                'INSERT INTO e_otp (otpid, e_userid, otp, created_at, is_verified) VALUES (?, ?, ?, ?, ?)',
+                [otpid, userid, otp, new Date(), false],
+                { prepare: true }
+            ),
 
-        if (!emailIsValid(email))
-            return res.status(400).json({ message: 'Invalid email' });
+            sendEmail({
+                to_email: email,
+                subject: `Welcome to e-Reminder | ${name}`,
+                html: otpTemplate(name, otp)
+            })
+        ]);
 
-        const hashedPassword = await hashPassword(password);
-        const otp = generateOTP(),
-            otpid = generateId(),
-            userid = generateId();
+        const token = generateToken({ userid });
 
-        const user: UserModel = {
-            name,
-            email,
-            password: hashedPassword,
-            userid,
-            created_at: new Date(),
-            updated_at: new Date(),
-            is_verified: false
-        }
+        return res.status(200).json({ id: userid, token });
+    } catch (error: unknown) {
+        return res.status(500).json({ message: 'An unexpected error occurred.' });
+    }
+};
 
+const Login = async (req: Request, res: Response): Promise<Response> => {
+    const { email, password } = req.body;
 
-        await cassandraClient.execute(
-            'INSERT INTO email_reminder.e_users (userid, name, email, password, is_verified, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [user.userid, user.name, user.email, user.password, user.is_verified, user.created_at, user.updated_at],
+    console.log(email, password)
+
+    if (!email || !password)
+        return res.status(400).json({ message: 'All fields are required' });
+
+    if (!emailIsValid(email))
+        return res.status(400).json({ message: 'Invalid email' });
+
+    try {
+        const { rows: [user] } = await cassandraClient.execute(
+            `SELECT * FROM e_users WHERE email = ? LIMIT 1 ALLOW FILTERING;`,
+            [email],
             { prepare: true }
-        )
+        );
 
-        await cassandraClient.execute(
-            'INSERT INTO e_otp (otpid, e_userid, otp, created_at, is_verified) VALUES (?, ?, ?, ?, ?)',
-            [otpid, user.userid, otp, new Date(), false],
-            { prepare: true }
-        )
-
-        await sendEmail({
-            to_email: user.email,
-            subject: 'Welcome to Cron Email Reminder',
-            html: otpTemplate(name, otp)
-        })
-
-        // const token = generateToken({ userid: user.userid });
-
-        return res.status(200).json({ id: user.userid });
+        return res.status(200).json({ statusOs: true });
     } catch (error: unknown) {
         if (error instanceof Error)
             return res.status(500).json({ message: error.message });
 
         return res.status(500).json({ message: 'An unexpected error occurred.' });
     }
-};
-
-// const SignUp = async (req: Request, res: Response): Promise<Response> => {}
+}
 
 const SendOTP = async (req: Request, res: Response): Promise<Response> => {
     const { id: userId } = req.body;
@@ -88,11 +101,11 @@ const SendOTP = async (req: Request, res: Response): Promise<Response> => {
 
         const email = rows[0]?.email;
 
-        if (!email) 
+        if (!email)
             return res.status(400).json({ message: 'Email not found' });
 
         const otp_res = await cassandraClient.execute(
-            `SELECT * FROM e_otp WHERE e_userid = ? ORDER BY created_at DESC LIMIT 1`,
+            `SELECT * FROM e_otp WHERE e_userid = ? ORDER BY created_at DESC LIMIT 1;`,
             [userId],
             { prepare: true }
         );
@@ -108,7 +121,7 @@ const SendOTP = async (req: Request, res: Response): Promise<Response> => {
             otpid = generateId();
 
         await cassandraClient.execute(
-            'INSERT INTO e_otp (otpid, e_userid, otp, created_at, is_verified) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO e_otp (otpid, e_userid, otp, created_at, is_verified) VALUES (?, ?, ?, ?, ?);',
             [otpid, userId, newOtp, new Date(), false],
             { prepare: true }
         );
@@ -119,35 +132,7 @@ const SendOTP = async (req: Request, res: Response): Promise<Response> => {
             html: otpTemplate('Cron Email Reminder', newOtp)
         });
 
-        return res.status(200).json({ sent: true });
-    } catch (error: unknown) {
-        if (error instanceof Error) 
-            return res.status(500).json({ message: error.message });
-
-        return res.status(500).json({ message: 'An unexpected error occurred.' });
-    }
-}
-
-const VerifyOTP = async (req: Request, res: Response): Promise<Response> => {
-    try {
-        const { id, otp } = req.body;
-
-        if (!otp || !id)
-            return res.status(400).json({ message: 'Empty otp value' });
-
-        const otp_res = await cassandraClient.execute(
-            `SELECT * FROM e_otp 
-            WHERE e_userid = ? AND otp = ? AND is_verified = false
-            Order By created_at DESC
-            `,
-            [id, otp],
-            { prepare: true }
-        );
-
-        console.log(otp_res.rows);
-
-        // return res.status(200).json({ verified: true });
-        return res.status(200).json({ res: otp_res.rows });
+        return res.status(200).json({ message: 'OTP sent successfully' });
     } catch (error: unknown) {
         if (error instanceof Error)
             return res.status(500).json({ message: error.message });
@@ -157,9 +142,58 @@ const VerifyOTP = async (req: Request, res: Response): Promise<Response> => {
 }
 
 
+const VerifyOTP = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const { id, otp } = req.body;
+
+        if (!otp || !id)
+            return res.status(400).json({ message: 'Empty parameters' });
+
+        const query = `
+            SELECT * FROM e_otp 
+            WHERE e_userid = ? AND otp = ? AND is_verified = false
+            LIMIT 1
+        `;
+
+        const [result] = await cassandraClient.execute(query, [id, otp], { prepare: true });
+
+        if (!result || result.rows.length === 0)
+            return res.status(400).json({ message: 'Invalid OTP or already verified' });
+
+        const { created_at, otpid } = result.rows[0];
+
+        if (new Date().getTime() - new Date(created_at).getTime() > 10 * 60 * 1000)
+            return res.status(400).json({ message: 'OTP expired' });
+
+        const queries = [
+            {
+                query: 'UPDATE e_otp SET is_verified = true WHERE e_userid = ? AND created_at = ? AND otpid = ?;',
+                params: [id, created_at, otpid]
+            },
+            {
+                query: 'UPDATE e_users SET is_verified = true WHERE userid = ?;',
+                params: [id]
+            }
+        ];
+
+        await cassandraClient.batch(queries, { prepare: true });
+
+        return res.status(200).json({ message: 'OTP verified successfully' });
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            return res.status(500).json({ message: error.message });
+        }
+
+        return res.status(500).json({ message: 'An unexpected error occurred.' });
+    }
+}
+
+
+
 export {
     TestRoute,
     SignIn,
+    Login,
     SendOTP,
     VerifyOTP
 };
