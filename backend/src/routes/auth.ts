@@ -2,7 +2,7 @@ import express from "express";
 
 import {
     TestRoute,
-    SignIn, Login, Logout,
+    SignIn, Login, GetProfile, Logout,
     DeleteUser,
     SendOTP, VerifyOTP
 } from '../controller/auth';
@@ -14,10 +14,11 @@ router.get('/', authenticator, TestRoute);
 
 router.post('/register', SignIn);
 router.post('/login', Login);
+router.get('/profile', authenticator, GetProfile);
 router.delete('/delete/:id', DeleteUser);
 router.post('/logout', Logout);
 
-router.post('/otp/send', SendOTP);
-router.patch('/otp/verify', VerifyOTP);
+router.post('/otp/send', authenticator, SendOTP);
+router.patch('/otp/verify', authenticator, VerifyOTP);
 
 export default router;

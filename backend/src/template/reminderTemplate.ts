@@ -1,10 +1,10 @@
-const reminderTemplate = (name: string, task: string): string => `
+const reminderTemplate = (name: string, title: string, task: string): string => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reminder Email</title>
+    <title>${title}</title>
 </head>
 <body>
     <p>Hi ${name},</p>

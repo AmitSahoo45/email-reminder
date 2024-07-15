@@ -56,7 +56,7 @@ const SignIn = async (req: Request, res: Response): Promise<Response> => {
             })
         ]);
 
-        const token = generateToken({ userid });
+        const token = generateToken({ userid, name });
 
         res.cookie(
             'token',
@@ -98,17 +98,17 @@ const Login = async (req: Request, res: Response): Promise<Response> => {
         const { rows: [user] } = await cassandraClient.execute(query, [email], { prepare: true });
 
         if (!user)
-            return res.status(400).json({ message: 'User not found or email not verified', ecode: 'USER_NOT_FOUND' });
+            return res.status(400).json({ message: 'User not found', ecode: 'USER_NOT_FOUND' });
 
         if (!user.is_verified)
-            return res.status(400).json({ message: 'Email not verified', ecode: 'EMAIL_NOT_VERIFIED' });
+            return res.status(200).json({ message: 'Email not verified', ecode: 'EMAIL_NOT_VERIFIED' });
 
         const isMatch = await comparePassword(password, user.password);
 
         if (!isMatch)
             return res.status(400).json({ message: 'Invalid password' });
 
-        const token = generateToken({ userid: user.userid });
+        const token = generateToken({ userid: user.userid, name: user.name });
 
         res.cookie(
             'token',
@@ -160,8 +160,8 @@ const DeleteUser = async (req: Request, res: Response): Promise<Response> => {
     }
 }
 
-const SendOTP = async (req: Request, res: Response): Promise<Response> => {
-    const { id: userId } = req.body;
+const SendOTP = async (req: CustomRequest, res: Response): Promise<Response> => {
+    const { userid: userId } = req.user;
 
     try {
         const { rows } = await cassandraClient.execute(
@@ -214,39 +214,43 @@ const SendOTP = async (req: Request, res: Response): Promise<Response> => {
 
 const VerifyOTP = async (req: CustomRequest, res: Response): Promise<Response> => {
     try {
-        const { id, otp } = req.body;
         console.log(req.user)
-        // if (!otp || !id)
-        //     return res.status(400).json({ message: 'Empty parameters' });
+        const {
+            user: { userid: id },
+            body: { otp: otp_user } } = req;
 
-        // const query = `
-        //     SELECT * FROM e_otp 
-        //     WHERE e_userid = ? AND otp = ? AND is_verified = false
-        //     LIMIT 1
-        // `;
 
-        // const [result] = await cassandraClient.execute(query, [id, otp], { prepare: true });
+        if (!otp_user || !id)
+            return res.status(400).json({ message: 'Empty parameters' });
 
-        // if (!result || result.rows.length === 0)
-        //     return res.status(400).json({ message: 'Invalid OTP or already verified' });
+        const query = `
+            SELECT otpid, created_at FROM e_otp 
+            WHERE e_userid = ? AND otp = ? AND is_verified = false
+            LIMIT 1 ALLOW FILTERING;
+        `;
 
-        // const { created_at, otpid } = result.rows[0];
+        const [result] = await cassandraClient.execute(query, [id, otp_user], { prepare: true });
 
-        // if (new Date().getTime() - new Date(created_at).getTime() > 10 * 60 * 1000)
-        //     return res.status(400).json({ message: 'OTP expired' });
+        if (!result)
+            return res.status(400).json({ message: 'Invalid OTP or already verified' });
 
-        // const queries = [
-        //     {
-        //         query: 'UPDATE e_otp SET is_verified = true WHERE e_userid = ? AND created_at = ? AND otpid = ?;',
-        //         params: [id, created_at, otpid]
-        //     },
-        //     {
-        //         query: 'UPDATE e_users SET is_verified = true WHERE userid = ?;',
-        //         params: [id]
-        //     }
-        // ];
+        const { otpid, created_at } = result;
 
-        // await cassandraClient.batch(queries, { prepare: true });
+        if (new Date().getTime() - new Date(created_at).getTime() > 10 * 60 * 1000)
+            return res.status(400).json({ message: 'OTP expired' });
+
+        const queries = [
+            {
+                query: 'UPDATE e_otp SET is_verified = true WHERE e_userid = ? AND created_at = ? AND otpid = ?;',
+                params: [id, created_at, otpid]
+            },
+            {
+                query: 'UPDATE e_users SET is_verified = true WHERE userid = ?;',
+                params: [id]
+            }
+        ];
+
+        await cassandraClient.batch(queries, { prepare: true });
 
         return res.status(200).json({ message: 'OTP verified successfully' });
     } catch (error: unknown) {
@@ -258,10 +262,20 @@ const VerifyOTP = async (req: CustomRequest, res: Response): Promise<Response> =
     }
 }
 
+const GetProfile = (req: CustomRequest, res: Response) => {
+    const { user } = req;
+
+    if (!user)
+        return res.status(200).json({ status: 0 });
+
+    return res.status(200).json({ user });
+};
+
 export {
     TestRoute,
     SignIn,
     Login,
+    GetProfile,
     Logout,
     DeleteUser,
     SendOTP,

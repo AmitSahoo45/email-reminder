@@ -1,0 +1,26 @@
+Error executing cron job at 2024-07-14T13:59:00.696Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:00:00.561Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:01:00.053Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:02:00.675Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:03:00.448Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:04:00.107Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:05:00.750Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:06:00.335Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:07:00.954Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:08:00.525Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:09:00.115Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:10:00.768Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+
+Error executing cron job at 2024-07-14T14:11:00.398Z: line 4:8 no viable alternative at input 'INNER' (....datetime, e_users.email         FROM [e_reminders]         INNER...)
+

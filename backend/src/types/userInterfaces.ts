@@ -10,6 +10,7 @@ export interface UserModel {
 
 export interface userDetail {
     userid: string;
+    name: string;
 }
 
 export interface emailOptions {
