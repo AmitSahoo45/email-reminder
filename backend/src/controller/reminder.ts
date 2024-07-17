@@ -18,13 +18,13 @@ const AddReminder = async (req: CustomRequest, res: Response) => {
         const utcDatetime = convertISTToUTC(datetime).toISOString();
         console.log(utcDatetime)
 
-        await cassandraClient.execute(
+        const reminder = await cassandraClient.execute(
             'INSERT INTO e_reminders (remid, e_userid, title, message, datetime) VALUES (?, ?, ?, ?, ?)',
             [generateId(), userid, title, message, utcDatetime],
             { prepare: true }
         );
 
-        res.status(200).json({ message: 'Reminder created successfully' });
+        res.status(200).json({ reminder });
     } catch (error: unknown) {
         res.status(500).json({ message: (error instanceof Error) ? error.message : 'An unexpected error occurred.' });
     }
@@ -32,25 +32,11 @@ const AddReminder = async (req: CustomRequest, res: Response) => {
 
 const ReadAllRemindersByUser = async (req: CustomRequest, res: Response) => {
     const { user: { userid } } = req;
-    const query = 'SELECT * FROM e_reminders WHERE e_userid = ?';
+    const query = 'SELECT * FROM e_reminders WHERE e_userid = ? ALLOW FILTERING';
 
     try {
         const result = await cassandraClient.execute(query, [userid], { prepare: true });
         res.status(200).json(result.rows);
-    } catch (error: unknown) {
-        res.status(500).json({ message: (error instanceof Error) ? error.message : 'An unexpected error occurred.' });
-    }
-}
-
-const UpdateReminder = async (req: CustomRequest, res: Response) => {
-    const { id } = req.params;
-    const { title, message, datetime } = req.body;
-    const query = 'UPDATE e_reminders SET title = ?, message = ?, datetime = ? WHERE remid = ?';
-    const params = [title, message, datetime, id];
-
-    try {
-        await cassandraClient.execute(query, params, { prepare: true });
-        res.status(200).json({ message: 'Reminder updated successfully' });
     } catch (error: unknown) {
         res.status(500).json({ message: (error instanceof Error) ? error.message : 'An unexpected error occurred.' });
     }
@@ -107,4 +93,4 @@ const emailReminderCronJob = () => {
     });
 };
 
-export { AddReminder, ReadAllRemindersByUser, UpdateReminder, DeleteReminder, emailReminderCronJob }
+export { AddReminder, ReadAllRemindersByUser, DeleteReminder, emailReminderCronJob }
