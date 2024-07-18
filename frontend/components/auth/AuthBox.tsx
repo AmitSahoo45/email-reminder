@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast } from "react-hot-toast";
 
 import { useUser } from '@/context/user/UserContext';
-import { authenticateUser } from "@/services/authService";
+import { authenticateUser, sendOTP, verifyOTP } from "@/services/authService";
 
 const AuthBox: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [dontHaveAccount, setDontHaveAccount] = useState<boolean>(false);
     const [passwordVisible, setPasswordVisible] = useState<boolean>(false);
-    const [otpWindow, setOtpWindow] = useState<boolean>(true);
+    const [otpWindow, setOtpWindow] = useState<boolean>(false);
 
     const {
         register,
@@ -25,7 +25,7 @@ const AuthBox: React.FC = () => {
 
     const [otp, setOtp] = useState<string>('');
 
-    const { setUser } = useUser();
+    const { user, setUser } = useUser();
 
     const toggleAccountType = () => setDontHaveAccount(!dontHaveAccount);
     const togglePasswordVisibility = () => setPasswordVisible(!passwordVisible);
@@ -41,10 +41,13 @@ const AuthBox: React.FC = () => {
         setLoading(true);
         try {
             const res = await authenticateUser({ name, email, password }, dontHaveAccount);
-            setUser({ userid: res.id, name: res.name, isVerified: false });
+            setUser({ userid: res.id, name: res.name, isVerified: true });
 
-            if (res.ecode === 'USER_CREATED' || res.ecode === 'EMAIL_NOT_VERIFIED')
-                setOtpWindow(true); 
+            if (res.ecode === 'USER_CREATED' || res.ecode === 'EMAIL_NOT_VERIFIED') {
+                setOtpWindow(true);
+
+                if (res.ecode === 'EMAIL_NOT_VERIFIED') toast.error('Email not verified', { duration: 4000 });
+            }
         } catch (error: any) {
             toast.error(error.response.data.message);
         } finally {
@@ -53,10 +56,31 @@ const AuthBox: React.FC = () => {
     }
 
     const onOtpSubmit = async () => {
-        if (!otp && otp.length < 6) 
+        if (!otp && otp.length < 6)
             return toast.error('Please enter the correct OTP');
 
-        
+        setLoading(true);
+        try {
+            await verifyOTP({ otp });
+            setUser({ ...user, isVerified: true });
+            setOtpWindow(false);
+        } catch (error: any) {
+            toast.error(error.response.data.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const onOtpResend = async () => {
+        try {
+            setLoading(true);
+            await sendOTP();
+            toast.success('OTP sent successfully');
+        } catch (error: any) {
+            toast.error(error.response.data.message);
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -136,7 +160,7 @@ const AuthBox: React.FC = () => {
                                         onClick={handleSubmit(onSubmit)}
                                         disabled={loading}
                                     >
-                                        {loading ? 'Loading...' : 'Get started'}
+                                        {loading ? 'Signing in...' : 'Get started'}
                                     </button>
                                 </div>
                             </div>
@@ -147,14 +171,14 @@ const AuthBox: React.FC = () => {
                                     <>
                                         Don't have an account? &nbsp;
                                         <span className="text-black font-bold cursor-pointer" onClick={toggleAccountType}>
-                                            {loading ? 'Loading...' : 'Sign up'}
+                                            Sign up
                                         </span>
                                     </>
                                 ) : (
                                     <>
                                         Already have an account? &nbsp;
                                         <span className="text-black font-bold cursor-pointer" onClick={toggleAccountType}>
-                                            {loading ? 'Loading...' : 'Sign in'}
+                                            Sign in
                                         </span>
                                     </>
                                 )}
@@ -178,8 +202,18 @@ const AuthBox: React.FC = () => {
                     <div className="flex items-center justify-center mb-3 mt-4">
                         <button
                             className=" w-3/5 rounded-md bg-white px-1.5 py-1.5 font-semibold leading-7 text-black hover:bg-white/80"
+                            onClick={onOtpSubmit}
+                            disabled={loading}
                         >
-                            Verify
+                            {loading ? 'Verifying...' : 'Verify OTP'}
+                        </button>
+
+                        <button
+                        className=" w-3/5 rounded-md bg-transparent ml-2 px-1.5 py-1.5 font-semibold leading-7 text-white hover:text-gray-300 border-2 border-white hover:border-gray-300"
+                        onClick={onOtpResend}
+                        disabled={loading}
+                        >
+                            {loading ? 'Resending...' : 'Resend OTP'}
                         </button>
                     </div>
                 </div>

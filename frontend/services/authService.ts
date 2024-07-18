@@ -22,7 +22,16 @@ export const logoutUser = async (): Promise<void> => {
 
 export const verifyOTP = async (otpData: OTPRequest): Promise<void> => {
     try {
-        await axiosInstance.post('/auth/otp/verify', otpData);
+        await axiosInstance.patch('/auth/otp/verify', otpData);
+    } catch (error: unknown) {
+        console.error('API call error: ', error);
+        throw error;
+    }
+}
+
+export const sendOTP = async (): Promise<void> => {
+    try {
+        await axiosInstance.post('/auth/otp/send');
     } catch (error: unknown) {
         console.error('API call error: ', error);
         throw error;

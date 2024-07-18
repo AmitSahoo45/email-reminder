@@ -9,22 +9,20 @@ import { convertISTToUTC } from '../utils/timezone';
 import { sendEmail } from '../utils/emailService';
 
 const AddReminder = async (req: CustomRequest, res: Response) => {
-    const { body: { title, message, datetime}, user: { userid } } = req;
+    const { body: { title, message, datetime }, user: { userid } } = req;
 
     if (!title || !message || !datetime)
         return res.status(400).json({ message: 'All fields are required' });
 
     try {
         const utcDatetime = convertISTToUTC(datetime).toISOString();
-        console.log(utcDatetime)
+        const remid = generateId();
 
-        const reminder = await cassandraClient.execute(
-            'INSERT INTO e_reminders (remid, e_userid, title, message, datetime) VALUES (?, ?, ?, ?, ?)',
-            [generateId(), userid, title, message, utcDatetime],
-            { prepare: true }
-        );
+        const query = 'INSERT INTO e_reminders (remid, e_userid, title, message, datetime) VALUES (?, ?, ?, ?, ?)';
+        const params = [remid, userid, title, message, utcDatetime];
+        await cassandraClient.execute(query, params, { prepare: true });
 
-        res.status(200).json({ reminder });
+        res.status(200).json({ remid });
     } catch (error: unknown) {
         res.status(500).json({ message: (error instanceof Error) ? error.message : 'An unexpected error occurred.' });
     }

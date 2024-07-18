@@ -29,3 +29,15 @@ interface UserContextType {
 interface OTPRequest {
     otp: string;
 }
+
+interface Reminder {
+    remid: string;
+    title: string;
+    message: string;
+    datetime: string;
+}
+
+interface ReminderCardProps {
+    reminder: Reminder;
+    onDelete: (id: string) => void;
+}
