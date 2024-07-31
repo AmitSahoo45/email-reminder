@@ -1,5 +1,5 @@
 interface AuthResponse {
-    id: string;
+    userid: string;
     name: string;
     ecode?: string;
 }

@@ -41,7 +41,7 @@ const AuthBox: React.FC = () => {
         setLoading(true);
         try {
             const res = await authenticateUser({ name, email, password }, dontHaveAccount);
-            setUser({ userid: res.id, name: res.name, isVerified: true });
+            setUser({ userid: res.userid, name: res.name, isVerified: true });
 
             if (res.ecode === 'USER_CREATED' || res.ecode === 'EMAIL_NOT_VERIFIED') {
                 setOtpWindow(true);

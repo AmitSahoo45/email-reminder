@@ -81,6 +81,8 @@ const SignIn = async (req: Request, res: Response): Promise<Response> => {
 const Login = async (req: Request, res: Response): Promise<Response> => {
     const { email, password } = req.body;
 
+    console.log(email, password);
+
     if (!email || !password)
         return res.status(400).json({ message: 'All fields are required' });
 
@@ -96,6 +98,8 @@ const Login = async (req: Request, res: Response): Promise<Response> => {
 
     try {
         const { rows: [user] } = await cassandraClient.execute(query, [email], { prepare: true });
+
+        console.log(user);
 
         if (!user)
             return res.status(400).json({ message: 'User not found', ecode: 'USER_NOT_FOUND' });
@@ -121,7 +125,7 @@ const Login = async (req: Request, res: Response): Promise<Response> => {
             }
         );
 
-        return res.status(200).json({ id: user.userid, name: user.name });
+        return res.status(200).json({ userid: user.userid, name: user.name });
     } catch (error: unknown) {
         if (error instanceof Error)
             return res.status(500).json({ message: error.message });
