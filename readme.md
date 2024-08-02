@@ -19,6 +19,10 @@ This project is a full-stack application that allows users to set email reminder
   - [Usage](#usage)
     - [Start the Application](#start-the-application)
     - [Access the Application](#access-the-application)
+  - [API Documentation](#api-documentation)
+    - [Auth Endpoints](#auth-endpoints)
+    - [Reminder Endpoints](#reminder-endpoints)
+  - [Contribution Guidelines](#contribution-guidelines)
 
 ## Features
 - User registration and authentication
@@ -202,3 +206,146 @@ npm run dev
 
 ### Access the Application
 The server will be running at `http://localhost:3000`.
+
+## API Documentation
+
+### Auth Endpoints
+
+- **Register a new user**
+
+  **Endpoint:** `POST /auth/register`
+
+  **Request Body:**
+  ```json
+  {
+    "name": "string",
+    "email": "string",
+    "password": "string"
+  }
+  ```
+
+  **Response:**
+  ```json
+  {
+    "id": "string",
+    "name": "string",
+    "ecode": "USER_CREATED"
+  }
+  ```
+
+- **Login a user**
+
+  **Endpoint:** `POST /auth/login`
+
+  **Request Body:**
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+
+  **Response:**
+  ```json
+  {
+    "userid": "string",
+    "name": "string"
+  }
+  ```
+
+- **Logout a user**
+
+  **Endpoint:** `POST /auth/logout`
+
+  **Response:**
+  ```json
+  {
+    "message": "Logged out successfully"
+  }
+  ```
+
+- **Send OTP**
+
+  **Endpoint:** `POST /auth/otp/send`
+
+  **Response:**
+  ```json
+  {
+    "message": "OTP sent successfully"
+  }
+  ```
+
+- **Verify OTP**
+
+  **Endpoint:** `PATCH /auth/otp/verify`
+
+  **Request Body:**
+  ```json
+  {
+    "otp": "string"
+  }
+  ```
+
+  **Response:**
+  ```json
+  {
+    "message": "OTP verified successfully"
+  }
+  ```
+
+### Reminder Endpoints
+
+- **Add a reminder**
+
+  **Endpoint:** `POST /reminder/add`
+
+  **Request Body:**
+  ```json
+  {
+    "title": "string",
+    "message": "string",
+    "datetime": "string"
+  }
+  ```
+
+  **Response:**
+  ```json
+  {
+    "remid": "string"
+  }
+  ```
+
+- **Get all reminders by user**
+
+  **Endpoint:** `GET /reminder/read`
+
+  **Response:**
+  ```json
+  [
+    {
+      "remid": "string",
+      "title": "string",
+      "message": "string",
+      "datetime": "string"
+    }
+  ]
+  ```
+
+- **Delete a reminder**
+
+  **Endpoint:** `DELETE /reminder/delete/:id`
+
+  **Response:**
+  ```json
+  {
+    "message": "Reminder deleted successfully"
+  }
+  ```
+
+## Contribution Guidelines
+
+1. Fork the repository.
+2. Create a new branch: `git checkout -b feature/your-feature`.
+3. Make your changes and commit them: `git commit -m 'Add some feature'`.
+4. Push to the branch: `git push origin feature/your-feature`.
+5. Open a pull request.
